@@ -21,8 +21,12 @@ const Allocator = std.mem.Allocator;
         "--enable-cxx",
         b.fmt("--srcdir={s}", .{ root_path })
     });
+    // Important: tell the build system to NOT cache the output of the configure script
+    run_config.has_side_effects = true;
+
+    // Capture the output to create a dependency for the main code
     const config_out = run_config.captureStdOut();
-    config_step.dependOn(&b.addInstallFile(config_out, "config_log.txt").step);
+    config_step.dependOn(&b.addInstallFile(config_out, "hdf5-config_log.txt").step);
     b.getInstallStep().dependOn(config_step);
 
     // Compile hdf5
