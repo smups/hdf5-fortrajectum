@@ -6,6 +6,10 @@
 # Java .classes files
 **/java/.classes
 
+# Zig cache and output folders
+.zig-cache/
+zig-out/
+
 # Backup files
 # Editor-specific extensions should go in your ~/.gitconfig, but we
 # include the standard Unix backup '~' extension since autoheader
