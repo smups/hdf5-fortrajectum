@@ -1,6 +1,6 @@
 .{
-	.name = "hdf5cpp-fortrajectum",
-	.version = "1.4.3-alpha1",
+	.name = "hdf5-fortrajectum",
+	.version = "1.14.4",
 	.paths = .{
 		"src",
 		"c++",
