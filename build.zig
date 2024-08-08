@@ -13,7 +13,13 @@ const Allocator = std.mem.Allocator;
     const root_dir = b.build_root.handle;
     const root_path = try root_dir.realpathAlloc(alloc, ".");
 
-    // Add a configure step
+    // const cmake = b.addConfigHeader(
+        // .{ .style = .{ .cmake = b.path("src/H5config.h.in") }, .include_path = "H5pubconf.h" },
+        // try getConfig(target, alloc)
+    // );
+    // b.getInstallStep().dependOn(&b.addInstallHeaderFile(cmake.getOutput(), "H5pubconf.h").step);
+
+    // // Add a configure step
     const config_step = b.step("configure", "configure hdf5 for building on this machine");
     const config_path = try root_dir.realpathAlloc(alloc, "configure");
     const run_config = b.addSystemCommand(&.{ config_path });
@@ -25,16 +31,19 @@ const Allocator = std.mem.Allocator;
     run_config.has_side_effects = true;
 
     // Capture the output to create a dependency for the main code
-    const config_out = run_config.captureStdOut();
-    config_step.dependOn(&b.addInstallFile(config_out, "hdf5-config_log.txt").step);
-    b.getInstallStep().dependOn(config_step);
-
+    const output = run_config.captureStdOut();
+    config_step.dependOn(&run_config.step);
+    config_step.dependOn(&b.addInstallFile(output, "hdf5-config.log").step);
+   
     // Compile hdf5
     const hdf5 = b.addStaticLibrary(.{
         .name = "hdf5-fortrajectum",
         .target = target,
         .optimize = optimize
     });
+
+    // Depend on configure step
+    hdf5.step.dependOn(config_step);
 
     // Add headers
     hdf5.addIncludePath(b.path("src"));
@@ -69,6 +78,9 @@ const Allocator = std.mem.Allocator;
         .target = target
     });
 
+    // Depend on configure step
+    hdf5cpp.step.dependOn(config_step);
+
     // Add headers
     hdf5cpp.addIncludePath(b.path("src"));
     hdf5cpp.addIncludePath(b.path("src/H5FDsubfiling"));
@@ -88,6 +100,40 @@ const Allocator = std.mem.Allocator;
     b.installArtifact(hdf5cpp);
     b.installArtifact(hdf5);
 }
+
+fn getConfig(target: std.Build.ResolvedTarget, alloc: Allocator) !Config {
+    var config = try alloc.create(Config); 
+
+    if (target.result.isMinGW()) {
+        config.@"H5_HAVE_WINDOWS" = {};
+        config.@"H5_HAVE_MINGW" = {};
+        config.@"H5_HAVE_WIN32_API" = {};
+    }
+
+    config.@"SIZEOF_BOOL" = target.result.c_type_byte_size(std.Target.CType.char);
+    config.@"SIZEOF_CHAR" = target.result.c_type_byte_size(std.Target.CType.char);
+    config.@"SIZEOF_DOUBLE" = target.result.c_type_byte_size(std.Target.CType.double);
+    config.@"SIZEOF_FLOAT" = target.result.c_type_byte_size(std.Target.CType.float);
+    config.@"SIZEOF_INT" = target.result.c_type_byte_size(std.Target.CType.int);
+    config.@"SIZEOF_UNSIGNED" = target.result.c_type_byte_size(std.Target.CType.uint);
+    config.@"SIZEOF_SHORT" = target.result.c_type_byte_size(std.Target.CType.short);
+
+    return config.*;
+}
+
+const Config = struct {
+    @"H5_HAVE_WINDOWS": ?void,
+    @"H5_HAVE_MINGW": ?void,
+    @"H5_HAVE_WIN32_API": ?void,
+    @"H5_DEFAULT_PLUGIN_DIR": ?void,
+    @"SIZEOF_BOOL": u16,
+    @"SIZEOF_CHAR": u16,
+    @"SIZEOF_DOUBLE": u16,
+    @"SIZEOF_FLOAT": u16,
+    @"SIZEOF_INT": u16,
+    @"SIZEOF_UNSIGNED": u16,
+    @"SIZEOF_SHORT": u16,
+};
 
 const hdf5_src = &.{
     "src/H5Abtree2.c",
