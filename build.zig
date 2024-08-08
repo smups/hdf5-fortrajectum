@@ -25,7 +25,7 @@ const Allocator = std.mem.Allocator;
     const run_config = b.addSystemCommand(&.{ config_path });
     run_config.addArgs(&.{
         "--enable-cxx",
-        b.fmt("--srcdir={s}", .{ root_path })
+        b.fmt("--srcdir={s}", .{ root_path }),
     });
     // Important: tell the build system to NOT cache the output of the configure script
     run_config.has_side_effects = true;

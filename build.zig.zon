@@ -1,12 +1,5 @@
 .{
 	.name = "hdf5-fortrajectum",
 	.version = "1.14.4",
-	.paths = .{
-		"src",
-		"c++",
-		"build.zig",
-		"build.zig.zon",
-		"configure",
-		"config"
-	}
+	.paths = .{ "" }
 }
