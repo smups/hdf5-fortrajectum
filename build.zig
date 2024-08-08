@@ -13,13 +13,14 @@ const Allocator = std.mem.Allocator;
     const root_dir = b.build_root.handle;
     const root_path = try root_dir.realpathAlloc(alloc, ".");
 
+    // Add autogen step
+    const autogen_step = b.step("autogen", "generate configuration script");
+    const autogen_run = b.addSystemCommand(&.{ try root_dir.realpathAlloc(alloc, "autogen.sh") });
+    autogen_step.dependOn(&autogen_run.step);
+    
     // Add a configure step
     const config_step = b.step("configure", "configure hdf5 for building on this machine");
-
-    const autogen_path = try root_dir.realpathAlloc(alloc, "autogen.sh");
-    const config_path = try root_dir.realpathAlloc(alloc, "configure");
-    const run_autogen = b.addSystemCommand(&.{ autogen_path });
-    const run_config = b.addSystemCommand(&.{ config_path });
+    const run_config = b.addSystemCommand(&.{ try root_dir.realpathAlloc(alloc, "configure") });
     run_config.addArgs(&.{
         "--enable-cxx",
         b.fmt("--srcdir={s}", .{ root_path }),
@@ -27,7 +28,7 @@ const Allocator = std.mem.Allocator;
 
     // Capture the output to create a dependency for the main code
     const output = run_config.captureStdOut();
-    run_config.step.dependOn(&run_autogen.step);
+    config_step.dependOn(autogen_step);
     config_step.dependOn(&run_config.step);
     config_step.dependOn(&b.addInstallFile(output, "hdf5-config.log").step);
    
