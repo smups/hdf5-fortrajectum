@@ -32,6 +32,12 @@ const Allocator = std.mem.Allocator;
     // Capture the output to create a dependency for the main code
     config_run.step.dependOn(&autogen_run.step);
     config_step.dependOn(&b.addInstallFile(config_out, "hdf5-config.log").step);
+
+    const wf = b.addWriteFiles();
+    wf.step.dependOn(&config_run.step);
+    _ = wf.addCopyFile(b.path("src/H5pubconf.h"), "H5pubconf.h");
+    _ = wf.addCopyFile(b.path("src/H5config.h"), "H5config.h");
+    const build_settings = wf.addCopyFile(b.path("src/H5build_settings.c"), "H5build_settings.c");
    
     // Compile hdf5
     const hdf5 = b.addStaticLibrary(.{
@@ -56,6 +62,7 @@ const Allocator = std.mem.Allocator;
         "-Wno-error=int-conversion",
     };
     hdf5.addCSourceFiles(.{ .files = hdf5_src, .flags = c_flags });
+    hdf5.addCSourceFile(.{ .file = build_settings, .flags = c_flags });
 
     // Link dependencies
     hdf5.linkLibC();
@@ -68,6 +75,7 @@ const Allocator = std.mem.Allocator;
     // Install Headers
     hdf5.installHeadersDirectory(b.path("src"), "", .{});
     hdf5.installHeadersDirectory(b.path("src/H5FDsubfiling/"), "", .{});
+    hdf5.installHeadersDirectory(wf.getDirectory(), "", .{});
     
     // Compile hdf5cpp
     const hdf5cpp = b.addStaticLibrary(.{
